@@ -1,0 +1,237 @@
+---
+title: "TheBestPS5"
+author: "Cameron Smith"
+date: "2023-02-20"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = FALSE)
+```
+
+```{r echo=FALSE}
+library(tidyverse)
+library(ggplot2)
+```
+
+## **Part 1 - Load and Check Data**
+
+### **Question 1**
+```{r echo=FALSE}
+gapminder_data <- read.delim ("gapminder.csv.bz2")
+```
+
+### **Question 2**
+```{r echo=FALSE}
+dim (gapminder_data)
+```
+### **Question 3**
+```{r echo=FALSE}
+gapminder_data [sample (1:nrow (gapminder_data), 5),]
+```
+Looks good to me
+
+## **Part 2 - Descriptive Statistics**
+
+### **Question 1**
+```{r echo=FALSE}
+length (unique (gapminder_data$iso3))
+length (unique (gapminder_data$iso2))
+length (unique (gapminder_data$name))
+```
+There are 249 countries in variable iso2, 253 countries in variable iso3,and 250 in variable name
+
+### **Question 2 - A**
+```{r echo=FALSE}
+gapminder_data %>%
+  group_by (iso2) %>%
+  summarise (n = n_distinct (name)) %>%
+  arrange (desc (n))
+```
+I don't see any iso2 codes that correspond to more than one country (Since I think that "2" is from those with no names?)
+
+### **Question 2 - B**
+```{r echo=FALSE}
+gapminder_data %>%
+  group_by (name)%>%
+  summarise (n = n_distinct (iso3)) %>%
+  arrange (desc (n))
+```
+I don't see any iso3 codes that correspond to more than one country (Since I think that "4" is from those with no names?)
+
+### **Question 3**
+```{r echo=FALSE}
+max (gapminder_data$time, na.rm = TRUE)
+min (gapminder_data$time, na.rm = TRUE)
+```
+The max year is 2019 and the min year is 1960
+
+## **Part 3 - CO2 Emissions**
+
+### **Question 1**
+```{r echo=FALSE}
+gapminder_data %>%
+  group_by (time) %>%
+  summarise (val1 = sum (is.na (co2)), val2 = sum (is.na (co2_PC))) %>%
+  arrange (desc (val1))
+```
+The years 2017, 2018, and 2019 have the most missing data for CO2 and co2_PC
+
+### **Question 2**
+```{r echo=FALSE}
+gapminder_data %>% 
+  filter (name==c("United States of America", "China", "India", "United Arab Emirates", "Canada")) %>%
+  ggplot (aes(x=time, y=co2, color=name)) + geom_point () + geom_line () + 
+  xlab ("Year") + ylab ("CO2 Emissions") + guides (color=guide_legend (title="Countries"))
+```
+
+Canada and UAE have had a very sublte increase in CO2 emissions over the years. India has been steadily increasing since 2000, while China has had significant exponential growth in their emissions. The United States has had a high and increasing CO2 emissions compared to the others, until 2005 when China surpassed them and we started to slighlty delcine in our emissions.
+
+### **Question 3**
+```{r echo=FALSE}
+gapminder_data %>% 
+  filter (name == c("United States of America", "China", "India", "United Arab Emirates", "Canada")) %>%
+  ggplot (aes (x=time, y=co2_PC, color=name)) + geom_point() + geom_line() + 
+  xlab ("Year") + ylab ("CO2 Emissions Per Capita") + guides (color=guide_legend (title="Countries"))
+```
+
+For all countries except UAE, their CO2 emissions per capita has stayed relatively the same (only slight increases and decreases). For UAE, they had a massive spike in CO2 emissions per capita from the 60's to 70's, but this has been declining since that peak.
+
+### **Question 4**
+```{r echo=FALSE}
+gapminder_data %>%
+  filter (!is.na (co2), !is.na (region)) %>%
+  filter (time %in% c (1960,2016)) %>%
+  group_by (region, time) %>%
+  summarize (avgCo2_PC = mean (co2_PC))
+```
+All continents average CO2 emissions increased from 1960 to 2016
+
+### **Question 5**
+```{r echo=FALSE}
+gapminder_data %>% 
+  filter (time == c (1960, 2016) & region!= "") %>% 
+  group_by (region, time) %>% 
+  summarise (co2_PC_avg = mean (co2_PC, na.rm=TRUE)) %>%
+  ggplot (aes (x=region, y=co2_PC_avg, fill=factor(time))) + geom_bar(position="dodge", stat="identity") +
+  xlab ("Continent") + ylab ("Average CO2 per capita") + guides (fill = guide_legend (title="Year"))
+```
+
+### **Question 6**
+```{r echo=FALSE}
+gapminder_data %>%
+  group_by (name, region) %>%
+  filter (!is.na (name), !is.na (co2_PC)) %>%
+  filter (time == 2016) %>%
+  mutate (avgCo2_PC = mean (co2_PC)) %>%
+  reframe (n=co2_PC) %>%
+  arrange (desc (n)) %>%
+  head (4)
+gapminder_data %>%
+  group_by (name, region) %>%
+  filter (!is.na (name), !is.na (co2_PC)) %>%
+  filter (time == 2016) %>%
+  mutate (avgCo2_PC = mean (co2_PC)) %>%
+  reframe (n=co2_PC) %>%
+  arrange (desc (n)) %>%
+  tail (3)
+```
+The 3 largest CO2 emitters in 2019 were Qatar, Trindad and Toabago, and Kuwait. The 3 smallest CO2 emitters in 2019 were Burundi, Somalia, and the Democratic Republic of the Congo
+
+## **Part 4 - GDP per capita**
+
+### **Question 1**
+```{r echo=FALSE}
+gapminder_data %>% 
+  filter (time == 1960 & region!="") %>%
+  ggplot (aes (x = lifeExpectancy, y = GDP_PC, color = region, size = totalPopulation)) + geom_point() + 
+  xlab ("GDP per capita") + ylab ("Life Expectancy") + scale_size (guide = "none") +
+  guides (color = guide_legend (title = "Continent")) +
+  ggtitle ("GDP per capita vs. life expectancy by country in 1960")
+```
+
+For the most part, all continents followed that the higher the GDP per capita, the more life expectancy increases
+
+### **Question 2**
+```{r echo=FALSE}
+gapminder_data %>% 
+  filter (time == 2019 & region!="") %>%
+  ggplot (aes (x = lifeExpectancy, y = GDP_PC, color=region, size=totalPopulation)) + geom_point() + 
+  xlab ("GDP per capita") + ylab ("Life Expectancy") + scale_size (guide="none") +
+  guides (color = guide_legend (title = "Continent")) +
+  ggtitle ("GDP per capita vs. life expectancy by country in 2019")
+```
+
+### **Question 3**
+From 1960 to 2019, the GDP per capita and the life expectancy of continents have increased greatly. All continets have higher GDP's per capita and higher life expectancies to go along with it.
+
+### **Question 4**
+```{r echo=FALSE}
+gapminder_data %>% 
+  filter (time == c (1960, 2019) & region!="") %>% 
+  group_by (region, time) %>% 
+  summarise (lifeExpectancy_avg = mean (lifeExpectancy, na.rm=TRUE)) %>%
+  arrange (time)
+```
+The results do fit well with what I see in the two figures
+
+### **Question 5**
+```{r echo=FALSE}
+gapminder_data %>% 
+  group_by (region) %>% 
+  filter (region!="") %>%
+  mutate (lifeExpectancy_prev = lag (lifeExpectancy), 
+         lifeExpectancy_growth = lifeExpectancy - lifeExpectancy_prev) %>% 
+  summarise (lifeExpectancy_growth_avg = mean (lifeExpectancy_growth, na.rm = TRUE))
+```
+Oceania by far had the highest Life Expectancy growth average, as well as the Americas, compared to the other continents 
+
+### **Question 6**
+```{r echo=FALSE}
+gapminder_data %>% 
+  filter (time == c(1960, 2019)) %>%
+  ggplot (aes (x = GDP_PC, fill = factor (time), color=factor (time))) + 
+  geom_histogram (alpha = 0.4, colour = "black",lwd = 0.75, linetype = 1,) + 
+  guides (fill = guide_legend (title="Year")) + xlab ("GDP per capita")
+```
+
+### **Question 7**
+```{r echo=FALSE}
+US_rank_1960 <- gapminder_data %>% 
+  filter (time == 1960 & name!="") %>%
+  mutate (rank = rank (desc (lifeExpectancy))) %>% 
+  filter (name == "United States of America") %>% 
+  select (name, rank)
+US_rank_1960
+
+US_rank_2019 <- gapminder_data %>% 
+  filter (time == 2019 & name!="") %>%
+  mutate (rank = rank (desc (lifeExpectancy))) %>% 
+  filter (name == "United States of America") %>% 
+  select (name, rank)
+US_rank_2019
+```
+The US ranked 17th in 1960 and ranked 46th in 2019
+
+### **Question 8***
+```{r echo=FALSE}
+Number_countries_1960 <- gapminder_data %>% 
+  filter(time == 1960 & !is.na(lifeExpectancy)) %>% 
+  summarize(n_countries = n())
+
+US_rank_1960$rank / Number_countries_1960$n_countries
+
+Number_countries_2019 <- gapminder_data %>% 
+  filter(time == 2019 & !is.na(lifeExpectancy)) %>% 
+  summarize(n_countries = n())
+
+US_rank_2019$rank / Number_countries_2019$n_countries
+```
+I think the values I got are slighlty off, but I got very close
+
+
+
+
+
+
+
